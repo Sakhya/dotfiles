@@ -1,50 +1,74 @@
 ;; EMACS CONFIG FROM UBUNTU
 
 
-;;https://github.com/xenodium/dotfiles/blob/master/emacs/init.el
+;; Personal Information
+(setq user-full-name "Sakhya Ghosh"
+      user-mail-address "sakhyaghosh@google.com")
+
+
 ;;
 ;; Add melpa package repository.
 (require 'package)
 (add-to-list 'package-archives
              '("melpa" . "http://melpa.milkbox.net/packages/") t)
+(add-to-list 'package-archives
+             '("GELPA" . "http://internal-elpa.appspot.com/packages/") t)
+;; (add-to-list 'package-archives
+;;              '("marmalade" . "http://marmalade-repo.org/packages/") t)
 (package-initialize)
 
+;;
+;; use-package
 (if (not (package-installed-p 'use-package))
     (progn
       (package-refresh-contents)
       (package-install 'use-package)))
 (require 'use-package)
 
-;; (use-package async
-;;   :ensure async)
-;; (require 'async-bytecomp)
 
+;; Saving customizations in a different file
+(setq custom-file "~/.emacs-custom.el")
+(load custom-file)
+;; Load path for extensions
+(add-to-list 'load-path "~/.emacs.d")
+
+
+;;
+;; asynchronous processing
+(use-package async
+   :ensure async)
+(require 'async-bytecomp)
+
+;; easier key binding
 (use-package bind-key
   :ensure bind-key)
 
 
-(use-package hackernews
-  :ensure hackernews)
 
-;; (use-package rainbow-delimiters
-;;   :ensure rainbow-delimiters)
-;; (global-rainbow-delimiters-mode)
+;; Hungry Delete
+;;
+;; (use-package hungry-delete
+;;   :ensure hungry-delete)
+;; (global-hungry-delete-mode)
+;; (global-auto-revert-mode)
+;; (global-font-lock-mode)
 
 
-(use-package expand-region
-  :ensure expand-region)
-(global-set-key (kbd "C-c w") 'er/expand-region)
 
+
+;; Recent files.
 (require 'recentf)
 (setq recentf-max-saved-items 200
       recentf-max-menu-items 15)
 (recentf-mode)
 
+
 ;; Language-aware editing commands. Useful for imenu-menu.
 (semantic-mode 1)
 
 
-
+;; Mighty helm
+;;
 (use-package helm
   :ensure helm)
 
@@ -61,16 +85,16 @@
 (require 'helm-buffers)
 
 (use-package helm-ag-r
- :ensure helm-ag-r)
+  :ensure helm-ag-r)
 (require 'helm-ag-r)
 
 (use-package helm-swoop
- :ensure helm-swoop)
+  :ensure helm-swoop)
 (require 'helm-swoop)
 
 (global-set-key (kbd "C-c i") 'helm-imenu)
 (global-set-key (kbd "M-C-s") 'helm-swoop)
-(define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action) ; rebihnd tab to do persistent action
+(define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action) ; rebind tab to do persistent action
 (define-key helm-map (kbd "C-i") 'helm-execute-persistent-action) ; make TAB works in terminal
 (define-key helm-map (kbd "C-z")  'helm-select-action) ; list actions using C-z
 (global-set-key (kbd "M-x") 'helm-M-x)
@@ -120,31 +144,38 @@
          (helm-current-prefix-arg non-recursive))
     (call-interactively 'helm-do-grep)))
 
+;; Recursive grep helm
+;;
+(bind-key "C-c s r" 'helm-do-grep-recursive)
 
+
+;; Projectile
+;; Best way (so far) to search for files in repo.
+(projectile-global-mode)
+(use-package helm-projectile
+   :ensure helm-projectile)
+(require 'helm-projectile)
+(global-set-key (kbd "C-x f") 'helm-projectile)
+
+
+;; IDO vertical mode.
+;;
 (use-package ido-vertical-mode
   :ensure ido-vertical-mode)
 (ido-vertical-mode)
-
-;; ggtags code indexing.
-;; https://github.com/leoliu/ggtags
-;; https://github.com/leoliu/ggtags/wiki/Install-Global-with-support-for-exuberant-ctags
-;; Linux
-;; Install exuberant ctags from trunk.
-;; Install GNU Global using ./configure --with-exuberant-ctags=PATH_TO_CTAGS_EXECUTABLE
-;; Mac OS
-;; brew install --HEAD ctags
-;; brew install global --with-exuberant-ctags
-
-
-
+;; using helm so IDO is disabled.
+;; (setq ido-enable-flex-matching t)
+;;   (setq ido-everywhere t)
+;;   (ido-mode 1)
 
 
 ;; Automatically closes brackets.
-(use-package smartparens
-  :ensure smartparens)
-(smartparens-global-mode)
-(show-smartparens-global-mode +1)
+(electric-pair-mode)
 (electric-indent-mode)
+
+;; Put "carriage-return" for you automatically after left curly braces,
+;; right curly braces, and semi-colons in "C mode".
+;;(setq c-auto-newline 1)
 
 
 ;; Sort lines (ie. package imports or headers).
@@ -152,32 +183,178 @@
 
 
 
-;; Best way (so far) to search for files in repo.
-(projectile-global-mode)
 
+;;
+;; Look and Feel
+;;
 
-;; Best way (so far) to search for files in repo.
-(use-package helm-projectile
-   :ensure helm-projectile)
-(require 'helm-projectile)
-(global-set-key (kbd "C-x f") 'helm-projectile)
-
-
-
-
-
-
-;; full screen emacs
+;; Full screen emacs
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 ;; show line numbers
+;; Display line numbers.
+(use-package linum
+  :ensure linum)
 (global-linum-mode t)
+;; Right-justify linum
+;; From https://github.com/echosa/emacs.d#line-numbers
+(setq linum-format (lambda
+                     (line)
+                     (propertize
+                      (format (concat "%"
+                                      (number-to-string
+                                       (length
+                                        (number-to-string
+                                         (line-number-at-pos
+                                          (point-max)))))
+                                      "d ")
+                              line)
+                      'face
+                      'linum)))
+
+;; Display column numbers.
+(setq-default column-number-mode t)
+
 ;; turn on highlighting
 (global-hl-line-mode t)
 (show-paren-mode t)
-;; Show column-number in the mode line
-(column-number-mode 1)
+
+;; Highlight current line
+(require 'hl-line)
+(global-hl-line-mode 1)
+;; Set any color as the background face of the current line:
+(set-face-background 'hl-line "black")
+;;To keep syntax highlighting in the current line:
+(set-face-foreground 'highlight nil)
+
+;; just y for yes
+(fset 'yes-or-no-p 'y-or-n-p)
+;; will inhibit startup messages.
+(setq inhibit-startup-message t)
+;; Get rid of splash screens.
+;; From http://www.emacswiki.org/emacs/EmacsNiftyTricks
+(setq inhibit-splash-screen t)
+(setq initial-scratch-message nil)
+
+;; syntax highlighting by default
+(global-font-lock-mode 1)
+
+(setq ring-bell-function 'ignore)
+
+
+;; generic customizations
+
+;; Disable backup.
+;; From: http://anirudhsasikumar.net/blog/2005.01.21.html
+(setq backup-inhibited t)
+;; Disable auto save.
+;; From: http://anirudhsasikumar.net/blog/2005.01.21.html
+(setq auto-save-default nil)
+
+;; Auto revert files in emacs
+(global-auto-revert-mode t)
+
+
+;; HorizontalSplitting
+(setq split-height-threshold nil)
+(setq split-width-threshold 9999)
+
+
+
+;; ----TODO----
+(require 'fic-mode)
+  (add-hook 'prog-mode-hook 'turn-on-fic-mode)
+
+
+;; load zenburn by defailt
+(defun zenburn-init ()
+  (load-theme 'zenburn)
+)
+(add-hook 'after-init-hook 'zenburn-init)
+
+
+;; ----80 chars----
+;; Turn on red highlighting for characters outside of the 80/100 char limit
+;; Fill columns
+(setq-default fill-column 80)
+(require 'whitespace)
+(setq whitespace-line-column 80) ;; limit line length
+(setq whitespace-style '(face lines-tail))
+(add-hook 'prog-mode-hook 'whitespace-mode)
+
+
+
+
+;;
+;; Emacs Navigation
+;;
+
+;; Expand region (better selection)
+(use-package expand-region
+  :ensure expand-region)
+(global-set-key (kbd "C-c w") 'er/expand-region)
+
+
+;; CamelCase Navigation.
+;; Enabling subword mode (ie. navigate cameCase)
+;; From http://www.emacswiki.org/emacs/CamelCase
+(global-subword-mode t)
+;; (add-hook 'c-mode-common-hook
+;;           (lambda () (subword-mode 1)))
+
+
+
+
+
+;;
+;; Emacs Shortcut keys
+;;
+
+
+;; From http://pages.sachachua.com/.emacs.d/Sacha.html#sec-1-7-3
+;; Transpose stuff with M-t
+(bind-key "M-t" nil) ;; which used to be transpose-words
+(bind-key "M-t l" 'transpose-lines)
+(bind-key "M-t w" 'transpose-words)
+(bind-key "M-t t" 'transpose-words)
+(bind-key "M-t M-t" 'transpose-words)
+(bind-key "M-t s" 'transpose-sexps)
+
+;; Setting up the backspace key
+(global-set-key (kbd "C-h") 'delete-backward-char)
+(global-set-key (kbd "M-h") 'backward-kill-word)
+
+;;"Ctrl-k" kills an entire line if the cursor is at the beginning of line
+(setq kill-whole-line t)
+
+
+;; New browser tab.
+;;make chrome the default browser
+(setq browse-url-browser-function 'browse-url-generic
+      browse-url-generic-program "google-chrome")
+
+(cond
+ ((string-equal system-type "darwin") ; Mac OS X
+    (defun new-browser-tab ()
+      "Open a new browser tab in the default browser."
+      (interactive)
+      (shell-command "open http://google.com")
+      ))
+ ((string-equal system-type "gnu/linux") ; Linux
+    (defun new-browser-tab ()
+      "Open a new browser tab in the default browser."
+      (interactive)
+      (shell-command "google-chrome http://google.com")
+      ))
+ )
+(global-set-key (kbd "C-x t") 'new-browser-tab)
+
+
+
+
+;; Emacs Indentation
+;;
 
 ;; setting up python settings
 (setq-default indent-tabs-mode nil)
@@ -187,33 +364,20 @@
                       (setq indent-tabs-mode nil
                             tab-width 2))))
 
-;; Saving customizations in a different file
-(setq custom-file "~/.emacs-custom.el")
-(load custom-file)
+;; css and js indentation
+(setq css-indent-offset 2)
+(setq js-indent-level 2)
 
-;; Load path for extensions
-(add-to-list 'load-path "~/.emacs.d")
+
+
+
+
 
 ;; ----keyboard settings----
-;; setting up the backspace key
-(global-set-key (kbd "C-h") 'delete-backward-char)
-(global-set-key (kbd "M-h") 'backward-kill-word)
-
-;;"Ctrl-k" kills an entire line if the cursor is at the beginning of line
-(setq kill-whole-line t)
 
 ;; Indentation tab
 ;; Deletes trailing whitespaces after saving
 (add-hook 'write-file-hooks 'delete-trailing-whitespace)
-
-;; just y for yes
-(fset 'yes-or-no-p 'y-or-n-p)
-
-;; will inhibit startup messages.
-(setq inhibit-startup-message t)
-
-;; syntax highlighting by default
-(global-font-lock-mode 1)
 
 
 ;; ----Default Directory----
@@ -235,31 +399,10 @@
 ;; js2-mode
 (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
 
-;; ----Whitespace mode----
-(require 'whitespace)
-(global-whitespace-mode 1)
-(setq whitespace-style '(tabs tab-mark trailing))
-
-
 
 ;; all indentation can be made from spaces only
 (setq-default indent-tabs-mode nil)
 
-;; css and js indentation
-(setq css-indent-offset 2)
-(setq js-indent-level 2)
-
-
-;; ;; splitting vertically default
-;; (setq split-height-threshold 0)
-;; (setq split-width-threshold nil)
-;; pretty printing JSON
-(defun beautify-json ()
-  (interactive)
-  (let ((b (if mark-active (min (point) (mark)) (point-min)))
-        (e (if mark-active (max (point) (mark)) (point-max))))
-    (shell-command-on-region b e
-     "python -mjson.tool" (current-buffer) t)))
 
 
 ;; sorting out html indentation
@@ -272,39 +415,7 @@
 
 
 
-;; C++ mode
-;; Shortcut key to load the header file C++
-(global-set-key (kbd "C-x C-o") 'ff-find-other-file)
 
-;; open header file as c++
-(add-to-list 'auto-mode-alist '("\\.h\\'" . c++-mode))
-
-;; Google c++ mode
-(require 'google-c-style)
-(add-hook 'c-mode-common-hook 'google-set-c-style)
-(add-hook 'c-mode-common-hook 'google-make-newline-indent)
-
-;; (add-to-list 'load-path "~/extensions/google-c-style.el")
-;; (require 'google-c-style)
-;; (load "google-c-style.el")
-;; (add-hook 'c-mode-common-hook 'google-set-c-style)
-;; (add-hook 'c-mode-common-hook 'google-make-newline-indent)
-;; (add-hook 'c-mode-common-hook '(lambda () (c-set-style "google")))
-
-;; TODO(sakhyaghosh):
-;; Python Hook 2 spaces
-;; (add-hook 'python-mode-hook
-;;       (lambda ()
-;;         (setq indent-tabs-mode t)
-;;         (setq tab-width 2)
-;;         (setq python-indent 2)))
-
-;; ;; tells you which function you are in
-;; (which-function-mode 1)
-
-
-;;will let emacs put in a "carriage-return" for you automatically after left curly braces, righ curly braces, and semi-colons in "C mode"
-;;(setq c-auto-newline 1)
 
 
 ;; ----Uniquify----
@@ -347,78 +458,23 @@
 (global-set-key (kbd "C-`") 'ac-complete-clang)
 
 
-
-
 ;;
 ;; ----yasnippet----
 
 (use-package yasnippet
   :ensure yasnippet)
 
-;; ;; Develop and keep personal snippets under /snippets
-;; (setq yas/root-directory '("~/snippets"))
-;; (mapc 'yas/load-directory yas/root-directory)
-
+;; Develop and keep personal snippets under ~/snippets
 (setq yas-snippet-dirs (append yas-snippet-dirs
                                '("~/snippets")))
-
 (yas-global-mode 1)
 (yas--initialize)
 
-;; ;; automatically reload snippets after saving:
-;; (defun reload-snippets ()
-;;   (interactive)
-;;   (yas-reload-all)
-;;   (yas-recompile-all)
-;;   (yas-reload-all)
-;;   (yas-recompile-all)
-;;   )
-;; (defun snippet-mode-before-save ()
-;;   (interactive)
-;;   (when (eq major-mode 'snippet-mode) (reload-snippets)))
-;; (add-hook 'after-save-hook 'snippet-mode-before-save)')))
-
-
-;; (require 'yasnippet)
-;; (setq yas-snippet-dirs
-;;       '("~/extensions/snippets"            ;; personal snippets
-;;         "~/.emacs.d/elpa/yasnippet-0.8.0/snippets"    ;; the default collection
-;;         ))
-;; (yas-global-mode 1)
-
-;; (setq yas/root-directory "/usr/local/google/home/sakhyaghosh/extensions/snippets")
-;; (yas/load-directory yas/root-directory)
-;;(setq yas-snippet-dirs "/usr/local/google/home/sakhyaghosh/extensions/snippets")
-
-;; (add-hook 'the-major-mode-hook 'yas/minor-mode-on)
-
-;; (add-to-list 'load-path "/Users/sakhyaghosh/extensions/yasnippet.el")
-;; (require 'yasnippet)
-;; (setq yas/root-directory "/Users/sakhyaghosh/extensions/snippets")
-;; (yas/load-directory yas/root-directory)
-
-;; ;; defining space for yasnippet expansion
-;; (define-key yas-minor-mode-map (kbd "C-c SPC") 'yas/expand)
-;; (define-key yas-minor-mode-map (kbd "TAB") nil)
 
 
 
 
 
-
-
-;; ----IDO mode----
-;; (setq ido-enable-flex-matching t)
-;;   (setq ido-everywhere t)
-;;   (ido-mode 1)
-
-
-;; Auto revert files in emacs
-(global-auto-revert-mode t)
-
-
-;; Automatically save and restore sessions
-;; (desktop-save-mode 1)
 
 ;; showing the file name
 (setq frame-title-format
@@ -426,103 +482,16 @@
                 (abbreviate-file-name (buffer-file-name))
                   "%b"))))
 
-;; copying file name in clipboard
-(defun my-put-file-name-on-clipboard ()
-  "Put the current file name on the clipboard"
-  (interactive)
-  (let ((filename (if (equal major-mode 'dired-mode)
-                      default-directory
-                    (buffer-file-name))))
-    (when filename
-      (with-temp-buffer
-        (insert filename)
-        (clipboard-kill-region (point-min) (point-max)))
-      (message filename))))
 
 
-;; copying the current line
-(defadvice kill-ring-save (before slick-copy activate compile) "When called
-  interactively with no active region, copy a single line instead."
-  (interactive (if mark-active (list (region-beginning) (region-end)) (message
-  "Copied line") (list (line-beginning-position) (line-beginning-position
-  2)))))
 
-(defadvice kill-region (before slick-cut activate compile)
-  "When called interactively with no active region, kill a single line instead."
-  (interactive
-    (if mark-active (list (region-beginning) (region-end))
-      (list (line-beginning-position)
-        (line-beginning-position 2)))))
-
-;; pretty printing JSON
-(defun beautify-json ()
-  (interactive)
-  (let ((b (if mark-active (min (point) (mark)) (point-min)))
-        (e (if mark-active (max (point) (mark)) (point-max))))
-    (shell-command-on-region b e
-     "python -mjson.tool" (current-buffer) t)))
-
-;; kill all other buffers
-(defun kill-other-buffers ()
-    "Kill all other buffers."
-    (interactive)
-    (mapc 'kill-buffer
-          (delq (current-buffer)
-                (remove-if-not 'buffer-file-name (buffer-list)))))
-
-
-;; ----80 chars----
-;; Turn on red highlighting for characters outside of the 80/100 char limit
-;; Fill columns
-(setq-default fill-column 80)
-
-(require 'whitespace)
-(setq whitespace-line-column 80) ;; limit line length
-(setq whitespace-style '(face lines-tail))
-
-(add-hook 'prog-mode-hook 'whitespace-mode)
-
-
-;; ;; dictionary
-;; (set-variable 'debian-ispell-dictionary "american")
-
-;; ;; Look for spelling mistakes in code comments and strings.
-;; (add-hook 'c-mode-hook
-;;           '(lambda () (flyspell-prog-mode)))
-;; (add-hook 'c++-mode-hook
-;;           '(lambda () (flyspell-prog-mode)))
-;; (add-hook 'css-mode-hook
-;;           '(lambda () (flyspell-prog-mode)))
-;; (add-hook 'java-mode-hook
-;;           '(lambda () (flyspell-prog-mode)))
-;; (add-hook 'js2-mode-hook
-;;           '(lambda () (flyspell-prog-mode)))
-;; (add-hook 'python-mode-hook
-;;           '(lambda () (flyspell-prog-mode)))
-;; (add-hook 'emacs-mode-hook
-;;           '(lambda () (flyspell-prog-mode)))
-;; (add-hook 'matlab-mode-hook
-;;           '(lambda () (flyspell-prog-mode)))
-
-
-;; load zenburn by defailt
-(defun zenburn-init ()
-  (load-theme 'zenburn)
-)
-
-(add-hook 'after-init-hook 'zenburn-init)
-
-
-;; helps to copy paste in emacs
+;; Helps to copy paste in emacs
 ;;
-(load-file "~/.emacs.d/xclip.el")
-
-;; (setq x-select-enable-clipboard t)
-;; (setq interprogram-paste-function 'x-cut-buffer-or-selection-value)
-
-;; (global-set-key "\C-w" 'clipboard-kill-region)
-;; (global-set-key "\M-w" 'clipboard-kill-ring-save)
-;; (global-set-key "\C-y" 'clipboard-yank)
+;; http://stackoverflow.com/questions/5288213/how-can-i-paste-the-selected-region-outside-of-emacs
+;; sudo apt-get install xclip
+(use-package xclip
+  :ensure xclip)
+(xclip-mode 1)
 
 
 ;; Google specific stufff
@@ -532,28 +501,18 @@
 ;; cpp lint integration
 (global-set-key "\C-cl" 'google-lint)
 
-;; Put autosave files (ie #foo#) and backup files (ie foo~) in ~/.emacs.d/.
-;; create the autosave dir if necessary, since emacs won't.
-;;(make-directory "~/.emacs.d/autosaves/" t)
-;;(make-directory "~/.emacs.d/backups/" t)
-
-;; Make sure all backup files only live in one place
-
-;disable backup
-(setq backup-inhibited t)
-;disable auto save
-(setq auto-save-default nil)
-
-;;make chrome the default browser
-(setq browse-url-browser-function 'browse-url-generic
-      browse-url-generic-program "google-chrome")
-;;allow navigation of dashcase/camelCase etc word at a time( awesome for deleting parts of  a variable name Hit Alt+D and it will delete only a subword.
-(add-hook 'c-mode-common-hook
-          (lambda () (subword-mode 1)))
 
 
-;; pretty print XML
-(defun bf-pretty-print-xml-region (begin end)
+
+
+
+;;
+;; *******Handy Functions*******
+;;
+
+
+;; Pretty print XML
+(defun pretty-print-xml-region (begin end)
   "Pretty format XML markup in region. You need to have nxml-mode
 http://www.emacswiki.org/cgi-bin/wiki/NxmlMode installed to do
 this.  The function inserts linebreaks to separate tags that have
@@ -568,58 +527,105 @@ by using nxml's indentation rules."
       (indent-region begin end))
     (message "Ah, much better!"))
 
-;; Highlight current line
-(require 'hl-line)
-(global-hl-line-mode 1)
-;; Set any color as the background face of the current line:
-(set-face-background 'hl-line "black")
 
-;;To keep syntax highlighting in the current line:
-(set-face-foreground 'highlight nil)
+;; Kill all other buffers
+(defun kill-other-buffers ()
+    "Kill all other buffers."
+    (interactive)
+    (mapc 'kill-buffer
+          (delq (current-buffer)
+                (remove-if-not 'buffer-file-name (buffer-list)))))
 
-
-(setq ring-bell-function 'ignore)
-
-;; ----TODO----
-(require 'fic-mode)
-  (add-hook 'prog-mode-hook 'turn-on-fic-mode)
-
-;; ----Package emacs 24---
-
-;; Install some repos for emacs packages.
-(eval-after-load 'package
-  '(add-to-list 'package-archives
-                '("GELPA" . "http://internal-elpa.appspot.com/packages/")))
-;;install marlmalade repo
-(eval-after-load 'package
-  '(add-to-list 'package-archives
-               '("marmalade" . "http://marmalade-repo.org/packages/")))
-
-;; install melpa repo
-(eval-after-load 'package
-  '(add-to-list 'package-archives
-                '("melpa" . "http://melpa.milkbox.net/packages/") t))
-(package-initialize)
-; (require 'package)
-; (add-to-list 'package-archives
-;   '("melpa" .
-;     "http://melpa.milkbox.net/packages/"))
-; (add-to-list 'package-archives
-;   '("marmalade" .
-;     "http://marmalade-repo.org/packages/"))
-; (package-initialize)
+;; Pretty printing JSON
+(defun pretty-print-json ()
+  (interactive)
+  (let ((b (if mark-active (min (point) (mark)) (point-min)))
+        (e (if mark-active (max (point) (mark)) (point-max))))
+    (shell-command-on-region b e
+     "python -mjson.tool" (current-buffer) t)))
 
 
-;; HorizontalSplitting
-(setq split-height-threshold nil)
-(setq split-width-threshold 9999)
+;; Copying file name in clipboard
+(defun my-put-file-name-on-clipboard ()
+  "Put the current file name on the clipboard"
+  (interactive)
+  (let ((filename (if (equal major-mode 'dired-mode)
+                      default-directory
+                    (buffer-file-name))))
+    (when filename
+      (with-temp-buffer
+        (insert filename)
+        (clipboard-kill-region (point-min) (point-max)))
+      (message filename))))
 
-;; ediff split vertical
-(setq ediff-split-window-function 'split-window-horizontally)
 
+;; Rename file and buffer.
+;; From: https://sites.google.com/site/steveyegge2/my-dot-emacs-file
+(defun rename-file-and-buffer (new-name)
+  "Renames both current buffer and file it's visiting to NEW-NAME." (interactive "sNew name: ")
+  (let ((name (buffer-name))
+        (filename (buffer-file-name)))
+    (if (not filename)
+        (message "Buffer '%s' is not visiting a file!" name)
+      (if (get-buffer new-name)
+          (message "A buffer named '%s' already exists!" new-name)
+        (progn  (rename-file name new-name 1)  (rename-buffer new-name)  (set-visited-file-name new-name)  (set-buffer-modified-p nil)))))) ;;
+
+;; Move buffer file.
+;; From: https://sites.google.com/site/steveyegge2/my-dot-emacs-file
+(defun move-buffer-file (dir)
+  "Moves both current buffer and file it's visiting to DIR." (interactive "DNew directory: ")
+  (let* ((name (buffer-name))
+         (filename (buffer-file-name))
+         (dir
+          (if (string-match dir "\\(?:/\\|\\\\)$")
+              (substring dir 0 -1) dir))
+         (newname (concat dir "/" name)))
+
+    (if (not filename)
+        (message "Buffer '%s' is not visiting a file!" name)
+      (progn (copy-file filename newname 1) (delete-file filename) (set-visited-file-name newname) (set-buffer-modified-p nil) t))))
+
+
+
+;;
+;; *************C++ mode******************
+;;
+;; Shortcut key to load the header file C++
+(global-set-key (kbd "C-x C-o") 'ff-find-other-file)
+
+;; open header file as c++
+(add-to-list 'auto-mode-alist '("\\.h\\'" . c++-mode))
+
+;; Google c++ mode
+(require 'google-c-style)
+(add-hook 'c-mode-common-hook 'google-set-c-style)
+(add-hook 'c-mode-common-hook 'google-make-newline-indent)
+
+
+;; clang-format
+;; Needs clang-format installed.
+;; See http://blog.hardcodes.de/articles/63/building-clang-format-and-friends-on-osx-mountain-lion
+;; See http://clang.llvm.org/docs/ClangFormat.html
+(use-package clang-format
+  :ensure clang-format)
+(global-set-key (kbd "C-c t") 'clang-format-region)
+
+
+
+
+
+;;
+;; *************GIT and source control************
+;;
 ;; magit keybinding
-(global-set-key (kbd "C-x g") 'magit-status)
+(use-package magit
+  :ensure magit)
 (put 'upcase-region 'disabled nil)
+(eval-after-load "vc-hooks"
+  '(define-key vc-prefix-map "=" 'vc-ediff))
+(global-set-key (kbd "C-x g") 'magit-status)
+(setq magit-status-buffer-switch-function 'switch-to-buffer)
 
 
 ;; Highlight git hunks.
@@ -636,3 +642,36 @@ by using nxml's indentation rules."
 
 (use-package git-timemachine
   :ensure git-timemachine)
+
+
+;; ediff settings
+;;
+(require 'ediff)
+(setq ediff-window-setup-function 'ediff-setup-windows-plain)
+(setq ediff-split-window-function 'split-window-horizontally)
+;; ediff-revision cleanup.
+;; From http://www.emacswiki.org/emacs/DavidBoon#toc8
+(defvar my-ediff-bwin-config nil "Window configuration before ediff.")
+(defcustom my-ediff-bwin-reg ?b
+  "*Register to be set up to hold `my-ediff-bwin-config'
+    configuration.")
+
+(defun my-ediff-bsh ()
+  "Function to be called before any buffers or window setup for
+    ediff."
+  (remove-hook 'ediff-quit-hook 'ediff-cleanup-mess)
+  (window-configuration-to-register my-ediff-bwin-reg))
+
+(defun my-ediff-aswh ()
+  "setup hook used to remove the `ediff-cleanup-mess' function.  It causes errors."
+  (remove-hook 'ediff-quit-hook 'ediff-cleanup-mess))
+
+(defun my-ediff-qh ()
+  "Function to be called when ediff quits."
+  (remove-hook 'ediff-quit-hook 'ediff-cleanup-mess)
+  (ediff-cleanup-mess)
+  (jump-to-register my-ediff-bwin-reg))
+
+(add-hook 'ediff-before-setup-hook 'my-ediff-bsh)
+(add-hook 'ediff-after-setup-windows-hook 'my-ediff-aswh);
+(add-hook 'ediff-quit-hook 'my-ediff-qh)
