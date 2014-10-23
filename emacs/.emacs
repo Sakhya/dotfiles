@@ -13,8 +13,8 @@
              '("melpa" . "http://melpa.milkbox.net/packages/") t)
 (add-to-list 'package-archives
              '("GELPA" . "http://internal-elpa.appspot.com/packages/") t)
-;; (add-to-list 'package-archives
-;;              '("marmalade" . "http://marmalade-repo.org/packages/") t)
+(add-to-list 'package-archives
+             '("marmalade" . "http://marmalade-repo.org/packages/") t)
 (package-initialize)
 
 ;;
@@ -221,39 +221,12 @@
 (global-auto-complete-mode t)
 ;; Start auto-completion after 2 characters of a word
 (setq ac-auto-start 2)
+;;show menu immediately
+;; (setq ac-auto-show-menu 0.3)
 ;; case sensitivity is important when finding matches
 (setq ac-ignore-case nil)
 
-(use-package auto-complete-clang
-  :ensure auto-complete-clang)
-;; auto complete clang
-(require 'auto-complete-clang)
-(global-set-key (kbd "C-`") 'ac-complete-clang)
 
-
-;;
-;; Flyspell
-;;
-(dolist (hook '(text-mode-hook))
-  (add-hook hook (lambda () (flyspell-mode 1))))
-;; Look for spelling mistakes in code comments and strings.
-(add-hook 'c-mode-hook
-          '(lambda () (flyspell-prog-mode)))
-(add-hook 'c++-mode-hook
-          '(lambda () (flyspell-prog-mode)))
-(add-hook 'css-mode-hook
-          '(lambda () (flyspell-prog-mode)))
-(add-hook 'java-mode-hook
-          '(lambda () (flyspell-prog-mode)))
-(add-hook 'js2-mode-hook
-          '(lambda () (flyspell-prog-mode)))
-(add-hook 'python-mode-hook
-          '(lambda () (flyspell-prog-mode)))
-(add-hook 'emacs-mode-hook
-          '(lambda () (flyspell-prog-mode)))
-
-
-;;
 ;; ----yasnippet----
 ;;
 (use-package yasnippet
@@ -264,6 +237,32 @@
 (yas-global-mode 1)
 (yas--initialize)
 
+
+
+
+;;
+;; Flyspell (commented out as it makes my emacs quite slow)
+;;
+;; (dolist (hook '(text-mode-hook))
+;;   (add-hook hook (lambda () (flyspell-mode 1))))
+;; ;; Look for spelling mistakes in code comments and strings.
+;; (add-hook 'c-mode-hook
+;;           '(lambda () (flyspell-prog-mode)))
+;; (add-hook 'c++-mode-hook
+;;           '(lambda () (flyspell-prog-mode)))
+;; (add-hook 'css-mode-hook
+;;           '(lambda () (flyspell-prog-mode)))
+;; (add-hook 'java-mode-hook
+;;           '(lambda () (flyspell-prog-mode)))
+;; (add-hook 'js2-mode-hook
+;;           '(lambda () (flyspell-prog-mode)))
+;; (add-hook 'python-mode-hook
+;;           '(lambda () (flyspell-prog-mode)))
+;; (add-hook 'emacs-mode-hook
+;;           '(lambda () (flyspell-prog-mode)))
+
+
+;;
 
 
 
@@ -309,7 +308,7 @@
 (require 'hl-line)
 (global-hl-line-mode 1)
 ;; Set any color as the background face of the current line:
-(set-face-background 'hl-line "black")
+(set-face-background 'hl-line "#111")
 ;;To keep syntax highlighting in the current line:
 (set-face-foreground 'highlight nil)
 
@@ -386,7 +385,7 @@
 ;; ----80 chars----
 ;; Turn on red highlighting for characters outside of the 80/100 char limit
 ;; Fill columns
-(setq-default fill-column 80)
+;; (setq-default fill-column 80)
 (require 'whitespace)
 (setq whitespace-line-column 80) ;; limit line length
 (setq whitespace-style '(face lines-tail))
@@ -529,6 +528,30 @@
 ;;
 
 
+;; Thank you Xah Lee.
+;; from http://ergoemacs.org/emacs/emacs_dired_open_file_in_ext_apps.html
+(defun open-in-external-app (&optional file)
+  "Open the current file or dired marked files in external app. The app is chosen from your OS's preference."
+  (interactive)
+  (let ( doIt
+         (myFileList
+          (cond
+           ((string-equal major-mode "dired-mode") (dired-get-marked-files))
+           ((not file) (list (buffer-file-name)))
+           (file (list file)))))
+    (setq doIt (if (<= (length myFileList) 5)
+                   t
+                 (y-or-n-p "Open more than 5 files? ") ) )
+    (when doIt
+      (cond
+       ((string-equal system-type "windows-nt")
+        (mapc (lambda (fPath) (w32-shell-execute "open" (replace-regexp-in-string "/" "\\" fPath t t)) ) myFileList))
+       ((string-equal system-type "darwin")
+        (mapc (lambda (fPath) (shell-command (format "open \"%s\"" fPath)) )  myFileList) )
+       ((string-equal system-type "gnu/linux")
+        (mapc (lambda (fPath) (let ((process-connection-type nil)) (start-process "" nil "xdg-open" fPath)) ) myFileList) ) ) ) ) )
+(global-set-key (kbd "C-M-o") 'open-in-external-app)
+
 ;; Pretty print XML
 (defun pretty-print-xml-region (begin end)
   "Pretty format XML markup in region. You need to have nxml-mode
@@ -653,6 +676,9 @@ by using nxml's indentation rules."
 (global-set-key (kbd "C-c t") 'clang-format-region)
 
 
+;; Expand Member Functions (does not seem to like the include files.)
+(autoload 'expand-member-functions "member-functions" "Expand C++ member function declarations" t)
+(add-hook 'c++-mode-hook (lambda () (local-set-key "\C-cm" #'expand-member-functions)))
 
 
 ;; **********JS Javascript********
