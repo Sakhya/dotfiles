@@ -429,6 +429,14 @@
        ))
 
 
+;; Open with
+;; Helps to open files externally.
+(require 'openwith)
+;; Set up to open json files in sublime.
+(setq openwith-associations '(("\\.json\\'" "sublime" (file))))
+(openwith-mode t)
+
+
 ;; ----TODO----
 (require 'fic-mode)
   (add-hook 'prog-mode-hook 'turn-on-fic-mode)
