@@ -19,6 +19,7 @@
 
 ;;
 ;; use-package
+;;
 (if (not (package-installed-p 'use-package))
     (progn
       (package-refresh-contents)
@@ -26,11 +27,20 @@
 (require 'use-package)
 
 
+;; Directory Settings
 ;; Saving customizations in a different file
 (setq custom-file "~/.emacs-custom.el")
 (load custom-file)
 ;; Load path for extensions
 (add-to-list 'load-path "~/.emacs.d")
+;; ----Default Directory----
+;; set default
+(setq default-directory "~/")
+
+
+;;
+;; *****************Goodies*********************
+;;
 
 
 ;;
@@ -47,11 +57,11 @@
 
 ;; Hungry Delete
 ;;
-;; (use-package hungry-delete
-;;   :ensure hungry-delete)
-;; (global-hungry-delete-mode)
-;; (global-auto-revert-mode)
-;; (global-font-lock-mode)
+(use-package hungry-delete
+  :ensure hungry-delete)
+(global-hungry-delete-mode)
+(global-auto-revert-mode)
+(global-font-lock-mode)
 
 
 
@@ -66,7 +76,7 @@
 ;; Language-aware editing commands. Useful for imenu-menu.
 (semantic-mode 1)
 
-
+;;
 ;; Mighty helm
 ;;
 (use-package helm
@@ -93,7 +103,7 @@
 (require 'helm-swoop)
 
 (global-set-key (kbd "C-c i") 'helm-imenu)
-(global-set-key (kbd "M-C-s") 'helm-swoop)
+(global-set-key (kbd "M-C-s") 'helm-multi-swoop-all)
 (define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action) ; rebind tab to do persistent action
 (define-key helm-map (kbd "C-i") 'helm-execute-persistent-action) ; make TAB works in terminal
 (define-key helm-map (kbd "C-z")  'helm-select-action) ; list actions using C-z
@@ -149,15 +159,21 @@
 (bind-key "C-c s r" 'helm-do-grep-recursive)
 
 
+;;
 ;; Projectile
 ;; Best way (so far) to search for files in repo.
-(projectile-global-mode)
-(use-package helm-projectile
-   :ensure helm-projectile)
-(require 'helm-projectile)
+;
+(use-package projectile
+  :init
+  (progn
+    (projectile-global-mode)
+    (setq projectile-completion-system 'default)
+    (setq projectile-enable-caching t)))
+(use-package helm-projectile)
 (global-set-key (kbd "C-x f") 'helm-projectile)
 
 
+;;
 ;; IDO vertical mode.
 ;;
 (use-package ido-vertical-mode
@@ -169,23 +185,91 @@
 ;;   (ido-mode 1)
 
 
-;; Automatically closes brackets.
-(electric-pair-mode)
-(electric-indent-mode)
+;;
+;; ----Uniquify----
+;; uniquely name the buffers so that it has filenames
+(require 'uniquify)
+(setq
+  uniquify-buffer-name-style 'forward
+  uniquify-separator "/")
 
-;; Put "carriage-return" for you automatically after left curly braces,
-;; right curly braces, and semi-colons in "C mode".
-;;(setq c-auto-newline 1)
+(setq frame-title-format
+      '("%S" (buffer-file-name "%f"
+                   (dired-directory dired-directory "%b"))))
+;; showing the file name
+(setq frame-title-format
+  '("" invocation-name ": "(:eval (if (buffer-file-name)
+                (abbreviate-file-name (buffer-file-name))
+                  "%b"))))
 
 
-;; Sort lines (ie. package imports or headers).
-(global-set-key (kbd "M-s l") 'sort-lines)
+;;
+;; Autocomplete
+;;
+
+(use-package auto-complete
+  :ensure auto-complete)
+;; Load the default configuration
+(require 'auto-complete-config)
+;; Make sure we can find the dictionaries
+(add-to-list 'ac-dictionary-directories "~/emacs/auto-complete/dict")
+;; Load by default
+(ac-config-default)
+(ac-flyspell-workaround)
+;; Use dictionaries by default
+(setq-default ac-sources (add-to-list 'ac-sources 'ac-source-dictionary))
+(global-auto-complete-mode t)
+;; Start auto-completion after 2 characters of a word
+(setq ac-auto-start 2)
+;; case sensitivity is important when finding matches
+(setq ac-ignore-case nil)
+
+(use-package auto-complete-clang
+  :ensure auto-complete-clang)
+;; auto complete clang
+(require 'auto-complete-clang)
+(global-set-key (kbd "C-`") 'ac-complete-clang)
+
+
+;;
+;; Flyspell
+;;
+(dolist (hook '(text-mode-hook))
+  (add-hook hook (lambda () (flyspell-mode 1))))
+;; Look for spelling mistakes in code comments and strings.
+(add-hook 'c-mode-hook
+          '(lambda () (flyspell-prog-mode)))
+(add-hook 'c++-mode-hook
+          '(lambda () (flyspell-prog-mode)))
+(add-hook 'css-mode-hook
+          '(lambda () (flyspell-prog-mode)))
+(add-hook 'java-mode-hook
+          '(lambda () (flyspell-prog-mode)))
+(add-hook 'js2-mode-hook
+          '(lambda () (flyspell-prog-mode)))
+(add-hook 'python-mode-hook
+          '(lambda () (flyspell-prog-mode)))
+(add-hook 'emacs-mode-hook
+          '(lambda () (flyspell-prog-mode)))
+
+
+;;
+;; ----yasnippet----
+;;
+(use-package yasnippet
+  :ensure yasnippet)
+;; Develop and keep personal snippets under ~/snippets
+(setq yas-snippet-dirs (append yas-snippet-dirs
+                               '("~/snippets")))
+(yas-global-mode 1)
+(yas--initialize)
+
 
 
 
 
 ;;
-;; Look and Feel
+;; ********Look and Feel******
 ;;
 
 ;; Full screen emacs
@@ -220,6 +304,7 @@
 (global-hl-line-mode t)
 (show-paren-mode t)
 
+(blink-cursor-mode -1)
 ;; Highlight current line
 (require 'hl-line)
 (global-hl-line-mode 1)
@@ -251,15 +336,39 @@
 ;; Disable auto save.
 ;; From: http://anirudhsasikumar.net/blog/2005.01.21.html
 (setq auto-save-default nil)
-
 ;; Auto revert files in emacs
 (global-auto-revert-mode t)
 
 
+;; Splitting
 ;; HorizontalSplitting
 (setq split-height-threshold nil)
 (setq split-width-threshold 9999)
+;; Window splitting more useful
+;; From http://www.reddit.com/r/emacs/comments/25v0eo/you_emacs_tips_and_tricks/chldury
+(defun vsplit-last-buffer ()
+  (interactive)
+  (split-window-vertically)
+  (other-window 1 nil)
+  (switch-to-next-buffer)
+  )
+(defun hsplit-last-buffer ()
+  (interactive)
+  (split-window-horizontally)
+  (other-window 1 nil)
+  (switch-to-next-buffer)
+  )
 
+(global-set-key (kbd "C-x 2") 'vsplit-last-buffer)
+(global-set-key (kbd "C-x 3") 'hsplit-last-buffer)
+
+
+;; Automatically closes brackets.
+(electric-pair-mode)
+(electric-indent-mode)
+
+;; Put "carriage-return" for you automatically after left curly braces,
+;; right curly braces, and semi-colons in "C mode".
 
 
 ;; ----TODO----
@@ -285,9 +394,29 @@
 
 
 
+;; Helps to copy paste in emacs
+;;
+;; http://stackoverflow.com/questions/5288213/how-can-i-paste-the-selected-region-outside-of-emacs
+;; sudo apt-get install xclip
+;; (use-package xclip
+;;   :ensure xclip)
+;; (xclip-mode)
+(load-file "~/.emacs.d/xclip.el")
+
+
+
+(use-package undo-tree
+  :init
+  (progn
+    (global-undo-tree-mode)
+    (setq undo-tree-visualizer-timestamps t)
+    (setq undo-tree-visualizer-diff t)))
+
+
+
 
 ;;
-;; Emacs Navigation
+;; ********Emacs Navigation*******
 ;;
 
 ;; Expand region (better selection)
@@ -303,13 +432,24 @@
 ;; (add-hook 'c-mode-common-hook
 ;;           (lambda () (subword-mode 1)))
 
+;;  ----Window movement----
+(global-set-key (kbd "C-x <up>") 'windmove-up)
+(global-set-key (kbd "C-x <down>") 'windmove-down)
+(global-set-key (kbd "C-x <right>") 'windmove-right)
+(global-set-key (kbd "C-x <left>") 'windmove-left)
 
-
-
+;; Pop to mark
+;; Handy way of getting back to previous places.
+(bind-key "C-x p" 'pop-to-mark-command)
+(setq set-mark-command-repeat-pop t)
 
 ;;
 ;; Emacs Shortcut keys
 ;;
+
+
+;; Sort lines (ie. package imports or headers).
+(global-set-key (kbd "M-s l") 'sort-lines)
 
 
 ;; From http://pages.sachachua.com/.emacs.d/Sacha.html#sec-1-7-3
@@ -368,141 +508,19 @@
 (setq css-indent-offset 2)
 (setq js-indent-level 2)
 
+;; all indentation can be made from spaces only
+(setq-default indent-tabs-mode nil)
 
-
-
-
-
-;; ----keyboard settings----
 
 ;; Indentation tab
 ;; Deletes trailing whitespaces after saving
 (add-hook 'write-file-hooks 'delete-trailing-whitespace)
 
 
-;; ----Default Directory----
-;; set default
-(setq default-directory "~/")
-
 
 ;; Unbind Pesky Sleep Button
 (global-unset-key [(control z)])
 (global-unset-key [(control x)(control z)])
-
-
-;; Allow hash to be entered
-(global-set-key (kbd "M-3") '(lambda () (interactive) (insert "#")))
-
-
-;; .json files
-(setq auto-mode-alist (cons '("\\.json\\'" . js-mode) auto-mode-alist))
-;; js2-mode
-(add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
-
-
-;; all indentation can be made from spaces only
-(setq-default indent-tabs-mode nil)
-
-
-
-;; sorting out html indentation
-(add-hook 'html-mode-hook
-        (lambda ()
-          ;; Default indentation is usually 2 spaces, changing to 4.
-          (set (make-local-variable 'sgml-basic-offset) 4)))
-
-
-
-
-
-
-
-
-;; ----Uniquify----
-;; uniquely name the buffers so that it has filenames
-(require 'uniquify)
-(setq
-  uniquify-buffer-name-style 'forward
-  uniquify-separator "/")
-
-(setq frame-title-format
-      '("%S" (buffer-file-name "%f"
-                   (dired-directory dired-directory "%b"))))
-
-
-;;  ----Window movement----
-(global-set-key (kbd "C-x <up>") 'windmove-up)
-(global-set-key (kbd "C-x <down>") 'windmove-down)
-(global-set-key (kbd "C-x <right>") 'windmove-right)
-(global-set-key (kbd "C-x <left>") 'windmove-left)
-
-
-
-;; Autocomplete
-;; Load the default configuration
-(require 'auto-complete-config)
-;; Make sure we can find the dictionaries
-(add-to-list 'ac-dictionary-directories "~/emacs/auto-complete/dict")
-;; Load by default
-(ac-config-default)
-;; Use dictionaries by default
-(setq-default ac-sources (add-to-list 'ac-sources 'ac-source-dictionary))
-;; (global-auto-complete-mode t)
-;; Start auto-completion after 2 characters of a word
-(setq ac-auto-start 2)
-;; case sensitivity is important when finding matches
-(setq ac-ignore-case nil)
-
-;; auto complete clang
-(require 'auto-complete-clang)
-(global-set-key (kbd "C-`") 'ac-complete-clang)
-
-
-;;
-;; ----yasnippet----
-
-(use-package yasnippet
-  :ensure yasnippet)
-
-;; Develop and keep personal snippets under ~/snippets
-(setq yas-snippet-dirs (append yas-snippet-dirs
-                               '("~/snippets")))
-(yas-global-mode 1)
-(yas--initialize)
-
-
-
-
-
-
-
-;; showing the file name
-(setq frame-title-format
-  '("" invocation-name ": "(:eval (if (buffer-file-name)
-                (abbreviate-file-name (buffer-file-name))
-                  "%b"))))
-
-
-
-
-;; Helps to copy paste in emacs
-;;
-;; http://stackoverflow.com/questions/5288213/how-can-i-paste-the-selected-region-outside-of-emacs
-;; sudo apt-get install xclip
-(use-package xclip
-  :ensure xclip)
-(xclip-mode 1)
-
-
-;; Google specific stufff
-(require 'google)
-;; automatic boilerplate
-(add-hook 'find-file-not-found-hooks 'autogen)
-;; cpp lint integration
-(global-set-key "\C-cl" 'google-lint)
-
-
-
 
 
 
@@ -546,7 +564,7 @@ by using nxml's indentation rules."
 
 
 ;; Copying file name in clipboard
-(defun my-put-file-name-on-clipboard ()
+(defun my-copy-file-name-to-clipboard ()
   "Put the current file name on the clipboard"
   (interactive)
   (let ((filename (if (equal major-mode 'dired-mode)
@@ -587,10 +605,29 @@ by using nxml's indentation rules."
       (progn (copy-file filename newname 1) (delete-file filename) (set-visited-file-name newname) (set-buffer-modified-p nil) t))))
 
 
+(defun swap-windows ()
+  (interactive)
+  (let ((current-buf (current-buffer))
+        (other-buf (progn
+                     (other-window 1)
+                     (current-buffer))))
+    (switch-to-buffer current-buf)
+    (other-window -1)
+    (switch-to-buffer other-buf)))
+
+(global-set-key (kbd "M-s s w") 'swap-windows)
+
 
 ;;
 ;; *************C++ mode******************
 ;;
+
+;; Google specific stufff
+(require 'google)
+;; cpp lint integration
+(global-set-key "\C-cl" 'google-lint)
+
+
 ;; Shortcut key to load the header file C++
 (global-set-key (kbd "C-x C-o") 'ff-find-other-file)
 
@@ -603,6 +640,10 @@ by using nxml's indentation rules."
 (add-hook 'c-mode-common-hook 'google-make-newline-indent)
 
 
+;; Allow hash to be entered
+(global-set-key (kbd "M-3") '(lambda () (interactive) (insert "#")))
+
+
 ;; clang-format
 ;; Needs clang-format installed.
 ;; See http://blog.hardcodes.de/articles/63/building-clang-format-and-friends-on-osx-mountain-lion
@@ -612,6 +653,14 @@ by using nxml's indentation rules."
 (global-set-key (kbd "C-c t") 'clang-format-region)
 
 
+
+
+;; **********JS Javascript********
+
+(use-package js2-mode
+  :commands js2-mode
+  :init
+    (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode)))
 
 
 
@@ -643,7 +692,7 @@ by using nxml's indentation rules."
 (use-package git-timemachine
   :ensure git-timemachine)
 
-
+;;
 ;; ediff settings
 ;;
 (require 'ediff)
