@@ -239,7 +239,6 @@
 
 
 
-
 ;;
 ;; Flyspell (commented out as it makes my emacs quite slow)
 ;;
@@ -509,9 +508,29 @@
 (bind-key "C-x p" 'pop-to-mark-command)
 (setq set-mark-command-repeat-pop t)
 
+
+;; Ace jump navigation
+(use-package ace-jump-mode
+  :ensure ace-jump-mode)
+(require 'ace-jump-mode)
+
+
+
+
 ;;
-;; Emacs Shortcut keys
+;; *******************Emacs Shortcut keys***************
 ;;
+
+;; Magic key combinations key chord
+(use-package key-chord
+  :ensure key-chord)
+(require 'key-chord)
+(key-chord-define-global "jj" 'ace-jump-char-mode)
+(key-chord-define-global "lj" 'ace-jump-line-mode)
+(key-chord-define-global "ss" 'helm-swoop)
+(key-chord-define-global "ff" 'helm-do-grep-recursive)
+(key-chord-define-global "uu" 'undo-tree-visualize)
+(key-chord-mode +1)
 
 
 ;; Sort lines (ie. package imports or headers).
@@ -714,7 +733,7 @@ by using nxml's indentation rules."
 
 ;; Google specific stufff
 (require 'google)
-;; cpp lint integration
+;; cpp lint integration (if you see errors do prodaccess)
 (global-set-key "\C-cl" 'google-lint)
 
 
@@ -754,6 +773,20 @@ by using nxml's indentation rules."
   :commands js2-mode
   :init
     (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode)))
+
+;; (setq js2-basic-offset 2
+;;       js2-bounce-indent-p t)
+
+
+
+;; *************markdown******************
+(use-package markdown-mode+
+  :ensure markdown-mode+)
+(autoload 'markdown-mode "markdown-mode"
+  "Major mode for editing Markdown files" t)
+(add-to-list 'auto-mode-alist '("\\.text\\'" . markdown-mode))
+(add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
+(add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
 
 
 
