@@ -42,7 +42,6 @@
 ;; *****************Goodies*********************
 ;;
 
-
 ;;
 ;; asynchronous processing
 (use-package async
@@ -484,6 +483,11 @@
 ;; ********Emacs Navigation*******
 ;;
 
+;; Moving between buffers
+(bind-key "C-x x" 'next-buffer)
+(bind-key "C-x z" 'previous-buffer)
+
+
 ;; Expand region (better selection)
 (use-package expand-region
   :ensure expand-region)
@@ -526,9 +530,9 @@
   :ensure key-chord)
 (require 'key-chord)
 (key-chord-define-global "jj" 'ace-jump-char-mode)
-(key-chord-define-global "lj" 'ace-jump-line-mode)
+(key-chord-define-global "kk" 'ace-jump-line-mode)
 (key-chord-define-global "ss" 'helm-swoop)
-(key-chord-define-global "ff" 'helm-do-grep-recursive)
+(key-chord-define-global "hh" 'helm-do-grep-recursive)
 (key-chord-define-global "uu" 'undo-tree-visualize)
 (key-chord-mode +1)
 
