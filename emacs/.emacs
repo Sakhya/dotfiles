@@ -54,18 +54,18 @@
 
 
 
-;; Hungry Delete
-;;
-(use-package hungry-delete
-  :ensure hungry-delete)
-(global-hungry-delete-mode)
-(global-auto-revert-mode)
-(global-font-lock-mode)
+;; ;; Hungry Delete
+;; ;;
+;; (use-package hungry-delete
+;;   :ensure hungry-delete)
+;; (global-hungry-delete-mode)
+;; (global-auto-revert-mode)
+;; (global-font-lock-mode)
 
 
 
 
-;; Recent files.
+;; recent files.
 (require 'recentf)
 (setq recentf-max-saved-items 200
       recentf-max-menu-items 15)
@@ -100,6 +100,13 @@
 (use-package helm-swoop
   :ensure helm-swoop)
 (require 'helm-swoop)
+
+;;(use-package helm-dash
+;;  :ensure helm-dash)
+;;(require 'helm-dash)
+;;(setq helm-dash-browser-func 'eww)
+;;(add-hook 'eww-mode-hook ' (lambda ()
+;;                             (setq-default show-trailing-whitespace nil)))
 
 (global-set-key (kbd "C-c i") 'helm-imenu)
 (global-set-key (kbd "M-C-s") 'helm-multi-swoop-all)
@@ -456,6 +463,9 @@
 (setq whitespace-style '(face lines-tail))
 (add-hook 'prog-mode-hook 'whitespace-mode)
 
+(add-hook 'prog-mode-hook
+          (lambda ()
+            (set-fill-column 80)))
 
 
 ;; Helps to copy paste in emacs
@@ -483,9 +493,27 @@
 ;; ********Emacs Navigation*******
 ;;
 
+(autoload 'goto-last-change "goto-last-change"
+  "Set point to the position of the last change." t)
+(global-set-key "\C-x\C-\\" 'goto-last-change)
+
+
 ;; Moving between buffers
 (bind-key "C-x x" 'next-buffer)
 (bind-key "C-x z" 'previous-buffer)
+
+
+(defun swap-windows ()
+  (interactive)
+  (let ((current-buf (current-buffer))
+        (other-buf (progn
+                     (other-window 1)
+                     (current-buffer))))
+    (switch-to-buffer current-buf)
+    (other-window -1)
+    (switch-to-buffer other-buf)))
+
+(global-set-key (kbd "M-s s w") 'swap-windows)
 
 
 ;; Expand region (better selection)
@@ -525,13 +553,20 @@
 ;; *******************Emacs Shortcut keys***************
 ;;
 
+;; disabling shortcut to kill emacs.
+(defun dont-kill-emacs ()
+      (interactive)
+      (error (substitute-command-keys "To exit emacs: \\[kill-emacs]")))
+
+    (global-set-key "\C-x\C-c" 'dont-kill-emacs)
+
+
 ;; Magic key combinations key chord
 (use-package key-chord
   :ensure key-chord)
 (require 'key-chord)
 (key-chord-define-global "jj" 'ace-jump-char-mode)
-(key-chord-define-global "kk" 'ace-jump-line-mode)
-(key-chord-define-global "ss" 'helm-swoop)
+(key-chord-define-global "kk" 'helm-swoop)
 (key-chord-define-global "hh" 'helm-do-grep-recursive)
 (key-chord-define-global "uu" 'undo-tree-visualize)
 (key-chord-mode +1)
@@ -588,10 +623,6 @@
 ;; setting up python settings
 (setq-default indent-tabs-mode nil)
 (setq-default tab-width 2)
-(add-hook 'python-mode-hook
-          (function (lambda ()
-                      (setq indent-tabs-mode nil
-                            tab-width 2))))
 
 ;; css and js indentation
 (setq css-indent-offset 2)
@@ -677,7 +708,7 @@ by using nxml's indentation rules."
 
 
 ;; Copying file name in clipboard
-(defun my-copy-file-name-to-clipboard ()
+(defun copy-file-name-to-clipboard ()
   "Put the current file name on the clipboard"
   (interactive)
   (let ((filename (if (equal major-mode 'dired-mode)
@@ -688,6 +719,24 @@ by using nxml's indentation rules."
         (insert filename)
         (clipboard-kill-region (point-min) (point-max)))
       (message filename))))
+
+
+;; Copying the current line.
+;; Called when there is no active selection, so M-w with no selection copies the
+;; whole line, so cool.
+(defadvice kill-ring-save (before slick-copy activate compile) "When called
+  interactively with no active region, copy a single line instead."
+  (interactive (if mark-active (list (region-beginning) (region-end)) (message
+                                                                       "Copied line") (list (line-beginning-position) (line-beginning-position
+                                                                                                                       2)))))
+
+(defadvice kill-region (before slick-cut activate compile)
+  "When called interactively with no active region, kill a single line instead."
+  (interactive
+   (if mark-active (list (region-beginning) (region-end))
+     (list (line-beginning-position)
+                   (line-beginning-position 2)))))
+
 
 
 ;; Rename file and buffer.
@@ -718,17 +767,6 @@ by using nxml's indentation rules."
       (progn (copy-file filename newname 1) (delete-file filename) (set-visited-file-name newname) (set-buffer-modified-p nil) t))))
 
 
-(defun swap-windows ()
-  (interactive)
-  (let ((current-buf (current-buffer))
-        (other-buf (progn
-                     (other-window 1)
-                     (current-buffer))))
-    (switch-to-buffer current-buf)
-    (other-window -1)
-    (switch-to-buffer other-buf)))
-
-(global-set-key (kbd "M-s s w") 'swap-windows)
 
 
 ;;
@@ -780,6 +818,159 @@ by using nxml's indentation rules."
 
 ;; (setq js2-basic-offset 2
 ;;       js2-bounce-indent-p t)
+
+
+;; js2-mode
+
+(defun google-coding-style/indent-anchor-point ()
+  "Returns the position of the first nonblank character on the closest previous
+nonblank line.
+If no such character can be found, returns nil."
+  (save-excursion
+    (let (return-value)
+      (while (and (not return-value)
+                  (>= (forward-line -1) 0))
+        (when (not (looking-at "^\\s *$"))
+            (back-to-indentation)
+            (setq return-value (point))))
+      return-value)))
+
+(defun google-coding-style/js-indent-lambda-point (parse-status)
+  "Returns the position of the beginning of the expression that we should indent
+respective to.
+If the point is not inside such a lambda construct, returns nil.
+PARSE-STATUS is the value of `parse-partial-sexp' at point, passed down from the
+caller for efficiency."
+  (save-excursion
+    (back-to-indentation)
+    (let (after-last-paren-open beginning-of-lambda-line)
+      (if (and parse-status (nth 1 parse-status)
+               (setq after-last-paren-open (1+ (nth 1 parse-status)))
+               (goto-char after-last-paren-open)
+               (setq beginning-of-lambda-line (point-at-bol))
+               (re-search-backward "function\\s *([^);{}]*)\\s *{"
+                                   beginning-of-lambda-line t)
+               (= (match-end 0) after-last-paren-open)
+               (goto-char (match-beginning 0))
+               ;; Move back to beginning of expression...
+               (progn (js2-mode-forward-sexp -1) t)
+               ;; ... and double-check that we are still on the same line:
+               (>= (point) beginning-of-lambda-line))
+          (point)))))
+
+(defun google-js-proper-indentation (parse-status)
+  "Returns the proper indentation for the current line or nil to let the default
+function `js-proper-indentation' decide.  Should NOT move point.
+PARSE-STATUS is the value of `parse-partial-sexp' at point, passed down from the
+caller for efficiency."
+  (save-excursion
+    (back-to-indentation)
+    (let ((indent-anchor (google-coding-style/indent-anchor-point))
+          (lambda-point
+           (google-coding-style/js-indent-lambda-point parse-status)))
+      (cond
+       ;; Under anonymous lambdas, indent relative to the containing expression
+       ((and indent-anchor lambda-point (>= lambda-point indent-anchor))
+        (progn (goto-char lambda-point) (+ js2-basic-offset (current-column))))
+       ;; Closing construct of same
+       ((and (looking-at "}") lambda-point)
+        (progn (goto-char lambda-point) (current-column)))
+       ))))
+
+(defadvice js-proper-indentation (around google-coding-style-js-indent)
+  "Ask `google-js-proper-indentation' first."
+  (unless (setq ad-return-value (google-js-proper-indentation (ad-get-arg 0)))
+    ad-do-it))
+
+(defun google-set-js2-style ()
+  "Configures js2-mode for compliance with the JavaScript Style Guide"
+  (interactive)
+  (setq indent-tabs-mode nil)
+  (setq js2-basic-offset 2)
+  (google-coding-style/set-doc-style)
+  (ad-activate 'js-proper-indentation))
+
+(add-hook 'js2-mode-hook 'google-set-js2-style)
+
+
+;; js-mode
+
+(defun google-set-js-style ()
+  "Configures Emacs' built-in js-mode for compliance with the
+JavaScript Style Guide."
+  (interactive)
+  (setq js-indent-level 2)
+  (google-coding-style/set-doc-style))
+
+(add-hook 'js-mode-hook 'google-set-js-style)
+
+
+;;
+;; python-mode
+;;
+
+;; python-mode
+
+;; https://github.com/msparks/dotfiles/blob/master/.emacs-lisp/google-coding-style.el
+
+(defadvice python-calculate-indentation (around calculate-with-google-style)
+    "Modify Python indentation to match the Google style guide.
+Currently, there are two cases in particular that this
+handles. Both have to do with multi-line parenthesized
+expressions.  In the first case, the default indentation for
+such expressions is `python-indent', but Google mandates
+`python-continuation-offset' instead. For example:
+  function(
+      arg_indented_four_spaces)
+In the second case, when doubly-nested multi-line parenthesized
+expressions exist, Google mandates that the second nested
+expression be indented relative to the first, as so:
+  function('string' % (
+               'format indented relative to first arg'))"
+    (unless
+        (block nil
+          (setq python-indent-list nil
+                python-indent-list-length 1)
+          ;; These conditions are all taken directly from python.el.
+          ;; Not great for code reuse, but probably better than copying
+          ;; the entire function.
+          (save-excursion
+            (beginning-of-line)
+            (let* ((syntax (syntax-ppss))
+                   (point (point))
+                   (open-start (cadr syntax)))
+              (when (eq 'string (syntax-ppss-context syntax)) (return))
+              (unless (python-continuation-line-p) (return))
+              (unless open-start (return))
+              (goto-char (1+ open-start))
+              (when (with-syntax-table python-space-backslash-table
+                      (let ((parse-sexp-ignore-comments t))
+                        (condition-case ()
+                            (progn (forward-sexp)
+                                   (backward-sexp)
+                                   (< (point) point))
+                          (error nil))))
+                (return))
+              (goto-char (1+ open-start))
+              (setq ad-return-value
+                    (if (eolp)
+                        (+ (current-indentation) python-continuation-offset)
+                      (current-indentation))))))
+      ;; If we don't meet the conditions for the Google workarounds,
+      ;; use the normal definition.
+      ad-do-it))
+
+;; Okay we'll use 2 everywhere for Python
+(defun google-set-python-style ()
+  (setq py-indent-offset 2)  ; For the third_party python-mode.el
+
+  ;; For GNU Emacs' python.el
+  (setq python-indent 2)
+  (when (fboundp 'python-calculate-indentation)
+    (ad-activate 'python-calculate-indentation)))
+
+(add-hook 'python-mode-hook 'google-set-python-style)
+
 
 
 
@@ -854,3 +1045,9 @@ by using nxml's indentation rules."
 (add-hook 'ediff-before-setup-hook 'my-ediff-bsh)
 (add-hook 'ediff-after-setup-windows-hook 'my-ediff-aswh);
 (add-hook 'ediff-quit-hook 'my-ediff-qh)
+
+
+
+;; Shell
+(autoload 'ansi-color-for-comint-mode-on "ansi-color" nil t)
+(add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
