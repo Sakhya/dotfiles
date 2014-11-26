@@ -501,6 +501,9 @@
 ;; ********Emacs Navigation*******
 ;;
 
+;; Delete Whitespace Around Point
+(global-set-key (kbd "C-x j") 'just-one-space)
+
 (autoload 'goto-last-change "goto-last-change"
   "Set point to the position of the last change." t)
 (global-set-key "\M-\\" 'goto-last-change)
@@ -527,7 +530,7 @@
 ;; Expand region (better selection)
 (use-package expand-region
   :ensure expand-region)
-(global-set-key (kbd "C-c w") 'er/expand-region)
+(global-set-key (kbd "C-x w") 'er/expand-region)
 
 
 ;; CamelCase Navigation.
@@ -554,6 +557,42 @@
   :ensure ace-jump-mode)
 (require 'ace-jump-mode)
 
+(defun top-join-line ()
+  "Join the current line with the line beneath it."
+  (interactive)
+  (delete-indentation 1))
+(global-set-key (kbd "C-^") 'top-join-line)
+
+
+;; http://emacsredux.com/blog/page/5/
+;; C-a Initially took you to the first non-whitespace char on a line,
+;; and if pressed again took you to the actual beginning of the line.
+(defun smarter-move-beginning-of-line (arg)
+  "Move point back to indentation of beginning of line.
+
+Move point to the first non-whitespace character on this line.
+If point is already there, move to the beginning of the line.
+Effectively toggle between the first non-whitespace character and
+the beginning of the line.
+
+If ARG is not nil or 1, move forward ARG - 1 lines first.  If
+point reaches the beginning or end of the buffer, stop there."
+  (interactive "^p")
+  (setq arg (or arg 1))
+
+  ;; Move lines first
+  (when (/= arg 1)
+    (let ((line-move-visual nil))
+      (forward-line (1- arg))))
+
+  (let ((orig-point (point)))
+    (back-to-indentation)
+    (when (= orig-point (point))
+      (move-beginning-of-line 1))))
+
+;; remap C-a to `smarter-move-beginning-of-line'
+(global-set-key [remap move-beginning-of-line]
+                'smarter-move-beginning-of-line)
 
 
 
